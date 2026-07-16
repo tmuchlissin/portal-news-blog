@@ -16,13 +16,24 @@ type PsqlDB struct {
 	User      string `json:"user"`
 	Password  string `json:"password"`
 	DBName    string `json:"db_name"`
+	SSLMode   string `json:"ssl_mode"`
 	DBMaxOpen int    `json:"db_max_open"`
 	DBMaxIdle int    `json:"db_max_idle"`
+}
+
+type CloudFlareR2 struct {
+	Name     	string `json:"name"`
+	ApiKey 		string `json:"api_key"`
+	ApiSecret   string `json:"api_secret"`
+	Token       string `json:"token"`
+	AccountID 	string `json:"account_id"`
+	PublicUrl 	string `json:"public_url"`
 }
 
 type Config struct {
 	App    App
 	PsqlDB PsqlDB
+	R2 CloudFlareR2
 }
 
 func NewConfig() *Config {
@@ -39,8 +50,17 @@ func NewConfig() *Config {
 			User:      viper.GetString("DATABASE_USER"),
 			Password:  viper.GetString("DATABASE_PASSWORD"),
 			DBName:    databaseName(),
+			SSLMode:   databaseSSLMode(),
 			DBMaxOpen: viper.GetInt("DATABASE_MAX_OPEN_CONNECTIONS"),
 			DBMaxIdle: viper.GetInt("DATABASE_MAX_IDLE_CONNECTIONS"),
+		},
+		R2: CloudFlareR2{
+			Name:      viper.GetString("CLOUDFLARE_R2_NAME"),
+			ApiKey:    viper.GetString("CLOUDFLARE_R2_API_KEY"),
+			ApiSecret: viper.GetString("CLOUDFLARE_R2_API_SECRET"),
+			Token:     viper.GetString("CLOUDFLARE_R2_TOKEN"),
+			AccountID: viper.GetString("CLOUDFLARE_R2_ACCOUNT_ID"),
+			PublicUrl: viper.GetString("CLOUDFLARE_R2_PUBLIC_URL"),
 		},
 	}
 }
@@ -51,4 +71,12 @@ func databaseName() string {
 	}
 
 	return viper.GetString("DATABSE_NAME")
+}
+
+func databaseSSLMode() string {
+	if sslMode := viper.GetString("DATABASE_SSL_MODE"); sslMode != "" {
+		return sslMode
+	}
+
+	return "require"
 }

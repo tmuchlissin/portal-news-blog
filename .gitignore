@@ -1,0 +1,30 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Go build outputs
+bin/
+build/
+dist/
+*.exe
+*.out
+*.test
+
+# Go workspace/vendor local files
+go.work
+go.work.sum
+vendor/
+
+# Logs
+*.log
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

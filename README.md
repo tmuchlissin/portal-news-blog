@@ -1,77 +1,66 @@
 # Portal News Blog API
 
-Backend API untuk aplikasi portal berita/blog yang dibangun dengan Go. Project ini disiapkan menggunakan pendekatan Hexagonal Architecture atau Ports and Adapters agar business logic tidak bergantung langsung pada detail eksternal seperti HTTP handler, database, storage, atau service pihak ketiga.
+**Portal News Blog API** is a backend service for a news/blog portal built with **Go**.
 
-> Status: project masih tahap awal. Struktur dasar sudah ada, tetapi entry point aplikasi, koneksi database, migration, handler, repository, domain, dan service belum lengkap.
+- 🧱 **Architecture:** uses **Hexagonal Architecture** / **Ports and Adapters**.
+- 🎯 **Core idea:** keep **business logic** independent from external details.
+- 🔌 **Adapters:** HTTP handlers, database repositories, configuration, storage, and third-party integrations stay outside the core layer.
+- 🧪 **Benefit:** easier to test, extend, and refactor as the application grows.
 
-## Tujuan Arsitektur
-
-Hexagonal Architecture membantu project tetap mudah dirawat ketika aplikasi mulai berkembang. Inti aplikasi diletakkan di domain dan service, sedangkan teknologi luar seperti database, HTTP framework, JWT, atau Cloudflare dibuat sebagai adapter.
-
-Dengan pola ini, perubahan detail teknis seperti mengganti database driver, mengganti HTTP router, atau menambah storage provider tidak perlu mengubah business logic utama.
-
-## Struktur Project
+## Project Structure
 
 ```text
 portal-news-blog/
-|-- cmd/
-|   `-- main.go              # Entry point aplikasi. Belum tersedia.
-|-- config/
-|   `-- config.go            # Loader konfigurasi dari environment. Masih kosong.
-|-- database/
-|   `-- migrations/          # File migration untuk go migrate. Belum tersedia.
-|-- internal/
-|   |-- adapter/
-|   |   |-- handler/         # HTTP handler/controller.
-|   |   |-- repository/      # Query dan akses database.
-|   |   `-- cloudflare/      # Integrasi Cloudflare atau storage eksternal.
-|   |-- app/
-|   |   `-- app.go           # Inisialisasi dependency utama aplikasi.
-|   `-- core/
-|       |-- domain/          # Entity dan model bisnis utama.
-|       `-- service/         # Business logic aplikasi.
-|-- lib/
-|   |-- conf/                # Helper konfigurasi dan konversi nilai.
-|   `-- jwt/                 # Generate dan verifikasi JWT.
-|-- .env                     # Konfigurasi lokal. Jangan commit secret.
-|-- go.mod
-`-- README.md
+├── cmd/                         # CLI command layer using Cobra.
+│   ├── root.go                  # Root Cobra command, config flag, and Viper initialization.
+│   └── start.go                 # Start command that calls the application bootstrap.
+├── config/                      # Application configuration and database setup.
+│   ├── config.go                # Maps environment values into application config structs.
+│   └── database.go              # Opens the PostgreSQL connection with GORM.
+├── database/                    # Database-related files.
+│   └── migrations/              # SQL migration files for schema changes.
+├── internal/                    # Private application code.
+│   ├── adapter/                 # External interface implementations.
+│   │   ├── cloudflare/          # Adapter for Cloudflare/storage integration.
+│   │   ├── handler/             # HTTP handlers/controllers.
+│   │   └── repository/          # Database access layer.
+│   ├── app/                     # Application bootstrap and dependency initialization.
+│   │   └── app.go               # Initializes application dependencies.
+│   └── core/                    # Core business logic.
+│       ├── domain/              # Domain layer.
+│       │   └── model/           # Domain/entity models.
+│       └── service/             # Business logic layer.
+├── lib/                         # Shared helper packages.
+│   ├── conf/                    # Configuration helper package.
+│   │   └── conf.go              # Config helper utilities.
+│   └── jwt/                     # JWT helper package.
+├── .env                         # Local environment file. Do not commit real secrets.
+├── main.go                      # Application entry point.
+├── go.mod
+├── go.sum
+└── README.md
 ```
 
-Beberapa folder pada struktur di atas masih berupa rencana pengembangan. Saat ini repository baru berisi `config/`, `internal/app/`, `lib/conf/`, `go.mod`, dan `README.md`.
+Folder details:
 
-## Alur Layer
+- `cmd/` contains CLI command definitions. `root.go` owns the root command and config loading, while `start.go` runs the app.
+- `config/` contains the app configuration structs and PostgreSQL connection setup.
+- `database/migrations/` contains versioned SQL files. Each migration has an `.up.sql` file for applying changes and a `.down.sql` file for rollback.
+- `internal/adapter/` is for outer-layer implementations such as HTTP handlers, database repositories, and Cloudflare/storage integration.
+- `internal/app/` is the current application bootstrap layer.
+- `internal/core/` is for application core code: domain models in `domain/model/` and business logic in `service/`.
+- `lib/` contains shared helper packages such as config helpers and JWT utilities.
+- `main.go` is the executable entry point used by `go run main.go`.
 
-```text
-HTTP Request
-    |
-    v
-adapter/handler
-    |
-    v
-core/service
-    |
-    v
-core/domain
-    |
-    v
-adapter/repository
-    |
-    v
-Database
-```
+## Requirements
 
-Handler bertugas menerima request dan mengubahnya menjadi input service. Service menjalankan aturan bisnis. Repository hanya fokus pada akses data. Domain menyimpan struktur data inti seperti user, artikel, kategori, tag, atau komentar.
-
-## Prasyarat
-
-- Go `1.22.2` atau versi kompatibel.
-- PostgreSQL atau database lain sesuai implementasi yang nanti dipilih.
-- `golang-migrate` jika migration sudah tersedia.
+- Go `1.23` or a compatible version.
+- PostgreSQL database. Neon works as long as SSL is enabled.
+- `golang-migrate` for SQL migrations.
 
 ## Environment
 
-Buat file `.env` di root project. Contoh variabel yang saat ini digunakan atau direncanakan:
+Create a `.env` file in the project root.
 
 ```env
 APP_ENV=development
@@ -82,6 +71,7 @@ DATABASE_PORT=5432
 DATABASE_USER=postgres
 DATABASE_PASSWORD=password
 DATABASE_NAME=portal_news_blog
+DATABASE_SSL_MODE=require
 DATABASE_MAX_OPEN_CONNECTIONS=10
 DATABASE_MAX_IDLE_CONNECTIONS=5
 
@@ -89,94 +79,154 @@ JWT_SECRET_KEY=change-this-secret
 JWT_ISSUER=portal-news-blog
 ```
 
-Catatan: file `.env` saat ini memakai nama `DATABSE_NAME`. Sebaiknya ubah menjadi `DATABASE_NAME` saat loader konfigurasi dibuat agar konsisten dengan variabel database lainnya.
+Notes:
 
-## Setup Lokal
+- `DATABASE_SSL_MODE` defaults to `require` in code when it is not set.
+- Neon requires `sslmode=require`.
+- The config loader still supports the old typo `DATABSE_NAME` as a fallback, but `DATABASE_NAME` is the recommended key.
+- Do not commit real credentials from `.env`.
 
-Clone repository dan masuk ke folder project:
+## Local Setup
+
+Clone the repository and enter the project directory:
 
 ```bash
 git clone <repository-url>
 cd portal-news-blog
 ```
 
-Install dependency Go:
+Install Go dependencies:
 
 ```bash
 go mod tidy
 ```
 
-Siapkan `.env`:
+Create `.env` manually from the Environment section above, or copy it from `.env.example` if that file is added later.
+
+## Run The Application
+
+Run the default command:
 
 ```bash
-cp .env.example .env
+go run main.go
 ```
 
-Jika `.env.example` belum tersedia, buat `.env` manual berdasarkan contoh pada bagian Environment.
-
-## Menjalankan Aplikasi
-
-Entry point aplikasi belum tersedia. Setelah `cmd/main.go` dibuat, aplikasi dapat dijalankan dengan pola berikut:
+You can also run the explicit Cobra command:
 
 ```bash
-go run ./cmd
+go run main.go start
 ```
 
-Atau jika file entry point dibuat langsung sebagai `cmd/main.go`:
+The app currently initializes configuration and opens a PostgreSQL connection. If the database connection succeeds, the command exits without starting an HTTP server yet.
+
+## Database Migrations
+
+This project uses `golang-migrate` to create and run SQL migration files in `database/migrations`.
+
+Install `golang-migrate`:
 
 ```bash
-go run ./cmd/main.go
+go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 ```
 
-## Migration Database
+Make sure the `migrate` binary is available:
 
-Folder migration belum tersedia. Setelah migration dibuat, perintah yang disarankan:
+```bash
+export PATH="$PATH:$HOME/go/bin"
+migrate -version
+```
+
+To make this permanent for new terminal sessions:
+
+```bash
+echo 'export PATH="$PATH:$HOME/go/bin"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+Create a new migration:
 
 ```bash
 migrate create -ext sql -dir database/migrations -seq create_users_table
 ```
 
-Menjalankan migration:
+That command creates two files:
+
+```text
+database/migrations/000001_create_users_table.up.sql
+database/migrations/000001_create_users_table.down.sql
+```
+
+Load `.env` into the current shell:
+
+```bash
+set -a
+source .env
+set +a
+```
+
+If your `.env` still uses the old typo `DATABSE_NAME`, map it to the correct variable name before running migrations:
+
+```bash
+export DATABASE_NAME="$DATABSE_NAME"
+```
+
+Run all pending migrations:
 
 ```bash
 migrate -path database/migrations \
-  -database "postgres://user:password@localhost:5432/portal_news_blog?sslmode=disable" \
+  -database "postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?sslmode=require" \
   up
 ```
 
-Rollback migration terakhir:
+Check the current migration version:
 
 ```bash
 migrate -path database/migrations \
-  -database "postgres://user:password@localhost:5432/portal_news_blog?sslmode=disable" \
+  -database "postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?sslmode=require" \
+  version
+```
+
+Rollback the latest migration:
+
+```bash
+migrate -path database/migrations \
+  -database "postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?sslmode=require" \
   down 1
 ```
 
-## Rekomendasi Pengembangan Berikutnya
+## Dirty Migration Recovery
 
-1. Buat loader konfigurasi di `config/config.go`.
-2. Tambahkan entry point aplikasi di `cmd/main.go`.
-3. Tentukan HTTP router yang akan digunakan.
-4. Buat koneksi database dan migration awal.
-5. Definisikan domain utama seperti `User`, `Article`, `Category`, `Tag`, dan `Comment`.
-6. Tambahkan repository dan service untuk fitur autentikasi.
-7. Tambahkan JWT helper di `lib/jwt`.
+If a migration fails, `golang-migrate` may mark the database as dirty, for example:
 
-## Konvensi
+```text
+Dirty database version 3
+```
 
-- Simpan business logic di `internal/core/service`.
-- Simpan entity utama di `internal/core/domain`.
-- Simpan akses database di `internal/adapter/repository`.
-- Simpan handler HTTP di `internal/adapter/handler`.
-- Hindari membaca `.env` langsung dari banyak tempat. Gunakan satu loader konfigurasi.
-- Jangan commit credential asli, token, atau secret dari `.env`.
+Fix the SQL file first, then force the database version back to the last successful migration. For example, if migration `000003` failed, the last successful version is `2`:
+
+```bash
+migrate -path database/migrations \
+  -database "postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?sslmode=require" \
+  force 2
+```
+
+Then rerun migrations:
+
+```bash
+migrate -path database/migrations \
+  -database "postgresql://${DATABASE_USER}:${DATABASE_PASSWORD}@${DATABASE_HOST}:${DATABASE_PORT}/${DATABASE_NAME}?sslmode=require" \
+  up
+```
+
+`force` does not run SQL and does not rollback data. It only updates the migration version stored in the database, so use it only after you understand which migration failed and the SQL file has been fixed.
+
+## Notes
+
+- 🔐 **JWT** is used for stateless authentication by carrying signed user claims.
+- ⚙️ **[Viper](https://github.com/spf13/viper)** is used to load configuration from `.env` and environment variables.
+- 🐍 **[Cobra](https://github.com/spf13/cobra)** is used to define CLI commands such as the root command and `start`.
+- 🗄️ **[golang-migrate](https://github.com/golang-migrate/migrate)** is used to create, apply, rollback, and track SQL migrations.
 
 ## License
 
-Belum ditentukan.
-
-Notes:
-
-- JWT adalah signed token yang membawa informasi (claims) pengguna untuk proses authentication dan authorization tanpa perlu menyimpan session di server.
-
-- Viper adalah library konfigurasi (configuration management) yang sangat populer di Golang. Tujuannya adalah memudahkan aplikasi membaca konfigurasi dari berbagai sumber tanpa Anda perlu menulis kode parsing sendiri.
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE).
