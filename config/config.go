@@ -6,7 +6,7 @@ type App struct {
 	AppPort string `json:"app_port"`
 	AppEnv  string `json:"app_env"`
 
-	JwtSecret string `json:"jwt_secret"`
+	JwtSecretKey string `json:"jwt_secret"`
 	JwtIssuer string `json:"jwt_issuer"`
 }
 
@@ -41,7 +41,7 @@ func NewConfig() *Config {
 		App: App{
 			AppPort:   viper.GetString("APP_PORT"),
 			AppEnv:    viper.GetString("APP_ENV"),
-			JwtSecret: viper.GetString("JWT_SECRET_KEY"),
+			JwtSecretKey: viper.GetString("JWT_SECRET_KEY"),
 			JwtIssuer: viper.GetString("JWT_ISSUER"),
 		},
 		PsqlDB: PsqlDB{

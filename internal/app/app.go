@@ -2,6 +2,7 @@ package app
 
 import (
 	"portal-news-blog/config"
+	"portal-news-blog/lib/auth"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/rs/zerolog/log"
@@ -17,4 +18,6 @@ func RunServer() {
 	// Cloudflare R2
 	cfgR2 := cfg.LoadAwsConfig()
 	_ = s3.NewFromConfig(cfgR2)
+
+	_ = auth.NewJwt(cfg)
 }
